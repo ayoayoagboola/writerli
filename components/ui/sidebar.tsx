@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/tooltip";
 import { usePathname } from "next/navigation";
 
-const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
@@ -54,6 +53,7 @@ const SidebarProvider = React.forwardRef<
     defaultOpen?: boolean;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    name: string;
   }
 >(
   (
@@ -64,6 +64,7 @@ const SidebarProvider = React.forwardRef<
       className,
       style,
       children,
+      name,
       ...props
     },
     ref
@@ -73,7 +74,14 @@ const SidebarProvider = React.forwardRef<
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen);
+    const [_open, _setOpen] = React.useState(true);
+    React.useEffect(() => {
+      const cookieValue = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith(`${name}:state=`))
+        ?.split("=")[1];
+      _setOpen(cookieValue === "true" ? true : defaultOpen);
+    }, [defaultOpen, name]);
     const open = openProp ?? _open;
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -85,9 +93,9 @@ const SidebarProvider = React.forwardRef<
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        document.cookie = `${name}:state=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
       },
-      [setOpenProp, open]
+      [setOpenProp, open, name]
     );
 
     // Helper to toggle the sidebar.
@@ -326,7 +334,7 @@ const SidebarInset = React.forwardRef<
         "relative flex min-h-svh flex-1 flex-col bg-background",
         "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className
-      )}
+      )} 
       {...props}
     />
   );
@@ -600,15 +608,14 @@ const SidebarMenuLink = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> & {
     href?: string;
-
   }
->(({ href = "/", ...props }) => {
+>(({ href = "/", ...props }, ref) => {
   const path = usePathname();
 
   const active = path.includes(href);
 
   return (
-    <SidebarMenuButton asChild isActive={active}>
+    <SidebarMenuButton asChild isActive={active} ref={ref}>
       <a href={href}>{props.children}</a>
     </SidebarMenuButton>
   );
