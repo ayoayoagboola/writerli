@@ -12,6 +12,9 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        body: ['"iA Writer Quattro"', "system-ui", "sans-serif"],
+      }
     },
   },
   plugins: [],
