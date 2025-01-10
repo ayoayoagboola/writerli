@@ -13,4 +13,13 @@ body,
 
 body {
   font-family: iA Writer Quattro, system-ui, sans-serif;
+  scrollbar-width: thin;
+}
+
+.lucide {
+  stroke-width: 1.5px;
+}
+
+.lucide * {
+  vector-effect: non-scaling-stroke;
 }
