@@ -9,8 +9,10 @@ import {
   passwordResetTokens,
   twoFactorTokens,
   verificationTokens,
-} from "@/schema";
+} from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+
+// TODO: add two-factor authentication + email verification
 
 export const generateTwoFactorToken = async (email: string) => {
   const token = uuidv4();
