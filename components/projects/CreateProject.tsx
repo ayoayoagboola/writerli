@@ -16,39 +16,104 @@ import { trpc } from "@/app/_trpc/client";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/text-area";
 import { Button } from "../ui/button";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "next-auth/react";
 
 // TODO: refactor error + success functionality, images are not being uploaded
 
 const CreateProject = ({ children }: { children: React.ReactNode }) => {
   const [isPending, startTransition] = useTransition();
+  const session = useSession();
 
   const form = useForm<z.infer<typeof CreateProjectSchema>>({
     resolver: zodResolver(CreateProjectSchema),
     defaultValues: {
       title: "",
       desc: "",
+      coverImg: undefined,
     },
   });
 
-  const { register, control } = form;
+  const { register, control, getValues } = form;
 
   const createProjectMutation = trpc.projects.createProject.useMutation({
-    onSuccess: () => {
-      toast.success("Project created successfully!");
+    onSuccess: async (data) => {
+      if ("projectId" in data) {
+        // data is of type { success: boolean; projectId: string }
+        const { projectId } = data;
+  
+        // Upload the file now that we have the project ID
+        await handleFileUpload(projectId);
+      } else {
+        // data is of type { error: string }
+        toast.error(`Error creating project: ${data.error}`);
+      }
     },
     onError: (error) => {
       toast.error(`Project creation failed: ${error.message}`);
     },
   });
 
+  const updateProjectImageMutation = trpc.projects.updateProjectImage.useMutation({
+    onSuccess: () => {
+      toast.success("Project image updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(`Project image update failed: ${error.message}`);
+    },
+  });
+
+  const handleFileUpload = async (projectId: string) => {
+    const { coverImg } = form.getValues();
+
+    if (!coverImg) {
+      toast.error("No cover image selected!");
+      return;
+    }
+
+    try {
+      const filePath = `${session.data?.user.id}/projects/${projectId}/cover.png`;
+
+      const { error } = await supabase.storage
+        .from("images")
+        .upload(filePath, coverImg, { upsert: true, headers: {
+          Authorization: `Bearer ${session.data?.user.supabaseAccessToken}`, // Ensure the token is passed here
+        },});
+
+      if (error) {
+        throw new Error("Failed to upload the image");
+      }
+
+      // Now update the project with the image path
+      updateProjectImageMutation.mutate({
+        projectId,
+        coverImgUrl: filePath,
+      });
+
+      toast.success("Project created successfully!");
+    } catch (error) {
+      toast.error(`Error uploading image: ${error}`);
+    }
+  };
+
   const onSubmit = (values: z.infer<typeof CreateProjectSchema>) => {
-    startTransition(() => {
+    const { title, desc } = values;
+
+    if (!session.data) {
+      toast.error("You need to be logged in to create a project!");
+      return;
+    }
+
+    console.log("Form values on submit:", values);
+    startTransition(async () => {
       createProjectMutation.mutate({
-        title: values.title,
-        desc: values.desc,
+        title,
+        desc,
       });
     });
   };
+
+  console.log(getValues("coverImg"));
 
   return (
     <Dialog>
@@ -70,14 +135,16 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
                   disabled={isPending}
                   accept="image/*"
                   onChange={(e) => {
-                    const file = e.target.files?.[0]; // Use optional chaining to safely access the first file
+                    const file = e.target.files?.[0];
                     if (file) {
-                      field.onChange(file); // Pass the file to the form field if it's not null
+                      field.onChange(file); // Pass the file to react-hook-form
+                      console.log("File selected: ", file); // Log the file for debugging
                     }
                   }}
                 />
               )}
             />
+
             <Input
               placeholder="Title"
               type="text"

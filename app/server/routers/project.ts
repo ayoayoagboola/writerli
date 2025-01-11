@@ -3,7 +3,6 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { supabase } from "@/lib/supabase";
 
 // TODO: add more project-related procedures (delete project, update project, etc.)
 
@@ -13,67 +12,65 @@ export const projectRouter = router({
     .input(
       z.object({
         title: z.string(),
-        desc: z.string(),
-        coverImg: z.any(),
+        desc: z.string(),  
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { title, desc, coverImg } = input;
-      console.log("input: ", input);
+      const { title, desc } = input;
+
+      console.log("Received input: ", input); // Log to see the content
 
       if (!ctx.user || !ctx.user.id) {
         return { error: "You need to be logged in to fetch your projects!" };
       }
 
-      const filePath = `public/${ctx.user.id}/projects/cover`;
-
       try {
-        const { data, error } = await supabase.storage
-          .from("images")
-          .upload(filePath, coverImg);
-
-        console.log("asdfasdf: ", data);
-
-        if (error) {
-          return { error: "Something went wrong while uploading your image!" };
-        }
-
         const project = await ctx.db
           .insert(projects)
           .values({
             userId: ctx.user.id,
             title,
             desc,
-            coverImg: data.path,
+            coverImg: null // Store the temporary image path
           })
           .returning();
 
-        if (!project) {
-          return { error: "Something went wrong while creating your project!" };
-        }
+          if (!project) {
+            return { error: "Failed to create the project!" };
+          }
+  
+          const projectId = project[0].id;
+          return { success: true, projectId }; // Return projectId for file upload
+      } catch (err) {
+        console.error("Error creating project:", err);
+        return { error: "Something went wrong while creating your project!" };
+      }
+    }),
 
-        const projectId = project[0].id;
-        const updatedFilePath = `public/${ctx.user.id}/projects/${projectId}/cover_img`; // New path including project ID
+    updateProjectImage: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+        coverImgUrl: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { projectId, coverImgUrl } = input;
 
-        const { error: moveError } = await supabase.storage
-          .from("images")
-          .move(data.path, updatedFilePath);
+      if (!ctx.user || !ctx.user.id) {
+        return { error: "You need to be logged in to update the project!" };
+      }
 
-        if (moveError) {
-          return { error: "Failed to move the image to the correct path!" };
-        }
-
-        // Update the project record with the correct image path
+      try {
         await ctx.db
           .update(projects)
-          .set({
-            coverImg: updatedFilePath,
-          })
+          .set({ coverImg: coverImgUrl })
           .where(eq(projects.id, projectId));
 
-        return { success: "Account created successfully!" };
-      } catch {
-        return { error: "Something went wrong while creating your account!" };
+        return { success: "Project image updated!" };
+      } catch (err) {
+        console.error("Error updating project image:", err);
+        return { error: "Failed to update project image!" };
       }
     }),
 
