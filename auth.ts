@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import {DrizzleAdapter} from "@auth/drizzle-adapter";
 
 import { getUserById } from "./data/user/user";
 import { db } from "./db";
@@ -8,6 +8,8 @@ import authConfig from "./auth.config";
 import { getAccountByUserId } from "./data/user/account";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
+import jwt from "jsonwebtoken";
+
 
 // TODO: add two-factor authentication + email verification
 
@@ -54,7 +56,7 @@ export const {
 
       return true;
     },
-    async session({ token, session }) {
+    async session({ token, session }) { 
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
@@ -67,7 +69,18 @@ export const {
         // session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
       }
 
-      return session;
+      const signingSecret = process.env.SUPABASE_JWT_SECRET
+      if (signingSecret) {
+        const payload = {
+          aud: "authenticated",
+          exp: Math.floor(new Date(session.expires).getTime() / 1000),
+          sub: session.user.id,
+          email: session.user.email,
+          role: "authenticated",
+        }
+        session.user.supabaseAccessToken = jwt.sign(payload, signingSecret)
+      }
+      return session
     },
     async jwt({ token }) {
       if (!token.sub) return token;
