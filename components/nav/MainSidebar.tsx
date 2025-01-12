@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Award,
   Calendar,
@@ -5,6 +7,7 @@ import {
   Folders,
   HelpCircle,
   Home,
+  Plus,
   Settings,
   Shapes,
   Trash2,
@@ -16,6 +19,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -27,13 +31,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../ui/collapsible";
-import Link from "next/link";  
+import Link from "next/link";
+import { trpc } from "@/app/_trpc/client";
+import CreateProject from "../projects/CreateProject";
 
-// TODO: add project list, fix the layout
+// TODO: fix the layout
 
 export function MainSidebar() {
+  const { data: projects, error } = trpc.projects.getProjects.useQuery(); // get all projects
+
+  if (error) {
+    console.error("Error fetching projects: ", error);
+  }
+
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
       <SidebarContent className="justify-between">
         <SidebarGroup>
           <div className="text-xl font-semibold px-2 mb-4">writerli</div>
@@ -55,37 +67,29 @@ export function MainSidebar() {
                         <Folders />
                         <span>Projects</span>
                         <ChevronRight className="transition-transform ml-auto group-data-[state=open]/collapsible:rotate-90" />
-                        
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link href={"/home"}>
-                              <Home />
-                              <span>Home</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link href={"/home"}>
-                              <Home />
-                              <span>Home</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link href={"/home"}>
-                              <Home />
-                              <span>Home</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
+                        {projects &&
+                          Array.isArray(projects) &&
+                          projects.map((project) => (
+                            <SidebarMenuSubItem key={project.id}>
+                              <SidebarMenuSubButton asChild>
+                                <Link href={`/projects/${project.id}`}>
+                                  <span>{project.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
                       </SidebarMenuSub>
                     </CollapsibleContent>
+                    {/* need to fix this :(( */}
+                    <SidebarMenuAction>
+                      <CreateProject>
+                        <Plus />
+                      </CreateProject>
+                    </SidebarMenuAction>
                   </SidebarMenuItem>
                 </Collapsible>
               </SidebarMenu>

@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import { projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-// TODO: add more project-related procedures (delete project, update project, etc.)
+// TODO: add more project-related procedures (update project, pin/favorite project etc.)
 
 export const projectRouter = router({
   // TODO: fix createProject
@@ -71,6 +71,22 @@ export const projectRouter = router({
       } catch (err) {
         console.error("Error updating project image:", err);
         return { error: "Failed to update project image!" };
+      }
+    }),
+
+    deleteProject: protectedProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      if (!ctx.user || !ctx.user.id) {
+        return { error: "You need to be logged in to delete the project!" };
+      }
+
+      try {
+        await ctx.db.delete(projects).where(eq(projects.id, id));
+        return { success: "Project deleted!" };
+      } catch (err) {
+        console.error("Error deleting project:", err);
+        return { error: "Failed to delete project!" };
       }
     }),
 

@@ -18,12 +18,14 @@ import { Textarea } from "../ui/text-area";
 import { Button } from "../ui/button";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-// TODO: refactor error + success functionality, images are not being uploaded
+// TODO: refactor error + success functionality
 
 const CreateProject = ({ children }: { children: React.ReactNode }) => {
   const [isPending, startTransition] = useTransition();
   const session = useSession();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof CreateProjectSchema>>({
     resolver: zodResolver(CreateProjectSchema),
@@ -41,7 +43,7 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
       if ("projectId" in data) {
         // data is of type { success: boolean; projectId: string }
         const { projectId } = data;
-  
+
         // Upload the file now that we have the project ID
         await handleFileUpload(projectId);
       } else {
@@ -54,14 +56,15 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  const updateProjectImageMutation = trpc.projects.updateProjectImage.useMutation({
-    onSuccess: () => {
-      toast.success("Project image updated successfully!");
-    },
-    onError: (error) => {
-      toast.error(`Project image update failed: ${error.message}`);
-    },
-  });
+  const updateProjectImageMutation =
+    trpc.projects.updateProjectImage.useMutation({
+      onSuccess: () => {
+        toast.success("Project image updated successfully!");
+      },
+      onError: (error) => {
+        toast.error(`Project image update failed: ${error.message}`);
+      },
+    });
 
   const handleFileUpload = async (projectId: string) => {
     const { coverImg } = form.getValues();
@@ -76,9 +79,12 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
 
       const { error } = await supabase.storage
         .from("images")
-        .upload(filePath, coverImg, { upsert: true, headers: {
-          Authorization: `Bearer ${session.data?.user.supabaseAccessToken}`, // Ensure the token is passed here
-        },});
+        .upload(filePath, coverImg, {
+          upsert: true,
+          headers: {
+            Authorization: `Bearer ${session.data?.user.supabaseAccessToken}`, // Ensure the token is passed here
+          },
+        });
 
       if (error) {
         throw new Error("Failed to upload the image");
@@ -91,6 +97,7 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
       });
 
       toast.success("Project created successfully!");
+      router.push(`/projects/${projectId}`);
     } catch (error) {
       toast.error(`Error uploading image: ${error}`);
     }
@@ -117,7 +124,7 @@ const CreateProject = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <Dialog>
-      <DialogTitle>Create a project</DialogTitle>
+      <DialogTitle className="hidden">Create a project</DialogTitle>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <form
