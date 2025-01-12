@@ -94,7 +94,7 @@ export const {
       token.name = existingUser.firstName;
       token.email = existingUser.email;
       token.picture = existingUser.image;
-      //   token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+        token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
       token.isOAuth = !!existingAccount;
 
       return token;

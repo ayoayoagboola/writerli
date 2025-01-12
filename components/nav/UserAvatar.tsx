@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import Image from "next/image";
 import { UserIcon as Icon, User } from "lucide-react";
 import {
@@ -10,22 +9,23 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import LogoutButton from "./LogoutButton";
+import { currentUser } from "@/lib/auth";
 
 // TODO: add more actions to the dropdown menu (e.g. settings, notifications)
 
-const UserIcon = async () => {
-  const session = await auth();
+const UserAvatar = async () => {
+  const user = await currentUser()
 
-  console.log(session);
+  console.log(user);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        {session && session.user && session.user.image ? (
+        {user && user.image ? (
           <div className="flex items-center justify-center gap-2">
             <Image
               className="rounded-full"
-              src={session.user.image}
+              src={user.image}
               width={24}
               height={24}
               alt="User Avatar"
@@ -56,4 +56,4 @@ const UserIcon = async () => {
   );
 };
 
-export default UserIcon;
+export default UserAvatar;

@@ -5,6 +5,7 @@ import { MainSidebar } from "@/components/nav/MainSidebar";
 import Navbar from "@/components/nav/Navbar";
 import Providers from "./_trpc/Providers";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionProvider } from "next-auth/react";
 
 // TODO: add favicon, fix title and description
 
@@ -21,18 +22,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <Providers>
-        <body className="bg-slate-50">
-          <main>
-            <SidebarProvider name={"Main Sidebar"}>
-              <MainSidebar />
-              <div className="w-full flex flex-col overflow-hidden max-h-dvh">
-                <Navbar />
-                <div className="w-full h-full">{children}</div>
-              </div>
-            </SidebarProvider>
-          </main>
-          <Toaster />
-        </body>
+        <SessionProvider>
+          <body className="bg-slate-50">
+            <main>
+              <SidebarProvider name={"Main Sidebar"}>
+                <MainSidebar />
+                <div className="w-full flex flex-col overflow-hidden max-h-dvh">
+                  <Navbar />
+                  <div className="w-full h-full">{children}</div>
+                </div>
+              </SidebarProvider>
+            </main>
+            <Toaster />
+          </body>
+        </SessionProvider>
       </Providers>
     </html>
   );

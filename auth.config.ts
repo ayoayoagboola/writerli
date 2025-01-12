@@ -17,7 +17,7 @@ export default {
       allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
-      async authorize(credentials) {
+      async authorize(credentials) { // fix credentials 
         const validatedFields = LoginSchema.safeParse(credentials);
 
         if (validatedFields.success) {
@@ -25,8 +25,10 @@ export default {
 
           const user = await getUserByEmail(email);
           if (!user || !user.password) return null;
+          console.log("User found:", user);
 
           const passwordsMatch = await bcrypt.compare(password, user.password);
+          console.log("Passwords match:", passwordsMatch);
 
           if (passwordsMatch) return user;
         }
@@ -36,4 +38,5 @@ export default {
     }),
   ],
   secret: process.env.AUTH_SECRET,
+  debug: true, 
 } satisfies NextAuthConfig;

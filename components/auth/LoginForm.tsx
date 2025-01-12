@@ -99,7 +99,7 @@ export const LoginForm = () => {
       <div className="flex gap-x-1 text-xs font-medium">
         <p>Don`&apos;`t have an account?</p>
         <Link
-          href="/signup"
+          href="/register"
           className="text-slate-500 underline-offset-4 hover:underline"
         >
           Register now
